@@ -90,7 +90,7 @@ async function main(): Promise<void> {
     ageMonths: 30,
     basePrice: 1000,
     minIncrement: 100,
-    durationSeconds: 15,
+    durationSeconds: 40,
   });
   if (!lot) throw new Error("lot missing");
   check(
@@ -127,7 +127,9 @@ async function main(): Promise<void> {
   const replay = await bid(1000, anaClient, "ana-first-bid");
   check("idempotent replay returns OK", replay.lot?.highestBid === 1100);
 
-  await new Promise((resolve) => setTimeout(resolve, 6000));
+  const state = await anonymous.getAuctionState({ auctionId });
+  const waitMs = Number(state.activeLot?.closesAtMs ?? 0n) - Number(state.serverTimeMs) - 5000;
+  await new Promise((resolve) => setTimeout(resolve, Math.max(waitMs, 0)));
   const before = (await anonymous.getAuctionState({ auctionId })).activeLot;
   await bid(1200, bobClient, "bob-snipe-bid");
   const after = (await anonymous.getAuctionState({ auctionId })).activeLot;
