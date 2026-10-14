@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+enum LotStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Auction {
+  id           String   @id @default(uuid())
+  name         String
+  lastSequence Int      @default(0)
+  createdAt    DateTime @default(now())
+  lots         Lot[]
+  events       Event[]
+
+  @@map("auctions")
+}
+
+model Lot {
+  id              String    @id @default(uuid())
+  auctionId       String
+  auction         Auction   @relation(fields: [auctionId], references: [id])
+  animalType      String
+  breed           String
+  weightKg        Int
+  ageMonths       Int
+  basePrice       Int
+  minIncrement    Int
+  status          LotStatus @default(ACTIVE)
+  highestBid      Int?
+  highestBidder   String?
+  closesAt        DateTime
+  winner          String?
+  finalPrice      Int?
+  createdAt       DateTime  @default(now())
+  bids            Bid[]
+
+  @@index([auctionId, status])
+  @@map("lots")
+}
+
+model Bid {
+  id             String   @id @default(uuid())
+  lotId          String
+  lot            Lot      @relation(fields: [lotId], references: [id])
+  bidder         String
+  amount         Int
+  idempotencyKey String
+  createdAt      DateTime @default(now())
+
+  @@unique([lotId, idempotencyKey])
+  @@map("bids")
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  auctionId String
+  auction   Auction  @relation(fields: [auctionId], references: [id])
+  sequence  Int
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@unique([auctionId, sequence])
+  @@map("events")
+}

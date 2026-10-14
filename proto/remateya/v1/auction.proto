@@ -1,0 +1,163 @@
+syntax = "proto3";
+
+package remateya.v1;
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_AUCTIONEER = 1;
+  ROLE_BIDDER = 2;
+}
+
+enum LotStatus {
+  LOT_STATUS_UNSPECIFIED = 0;
+  LOT_STATUS_ACTIVE = 1;
+  LOT_STATUS_CLOSED = 2;
+}
+
+message Lot {
+  string id = 1;
+  string auction_id = 2;
+  string animal_type = 3;
+  string breed = 4;
+  int32 weight_kg = 5;
+  int32 age_months = 6;
+  int32 base_price = 7;
+  int32 min_increment = 8;
+  LotStatus status = 9;
+  int32 highest_bid = 10;
+  string highest_bidder = 11;
+  int64 closes_at_ms = 12;
+  string winner = 13;
+  int32 final_price = 14;
+}
+
+message LoginRequest {
+  Role role = 1;
+  string display_name = 2;
+  string pin = 3;
+}
+message LoginResponse {
+  string token = 1;
+  Role role = 2;
+  string display_name = 3;
+}
+
+message CreateAuctionRequest {
+  string name = 1;
+}
+message CreateAuctionResponse {
+  string auction_id = 1;
+}
+
+message OpenLotRequest {
+  string auction_id = 1;
+  string animal_type = 2;
+  string breed = 3;
+  int32 weight_kg = 4;
+  int32 age_months = 5;
+  int32 base_price = 6;
+  int32 min_increment = 7;
+  int32 duration_seconds = 8;
+}
+message OpenLotResponse {
+  Lot lot = 1;
+}
+
+message PlaceBidRequest {
+  string auction_id = 1;
+  string lot_id = 2;
+  int32 amount = 3;
+  string idempotency_key = 4;
+}
+message PlaceBidResponse {
+  Lot lot = 1;
+  int64 sequence = 2;
+}
+
+message CloseLotRequest {
+  string auction_id = 1;
+  string lot_id = 2;
+}
+message CloseLotResponse {
+  Lot lot = 1;
+}
+
+message GetAuctionStateRequest {
+  string auction_id = 1;
+}
+message GetAuctionStateResponse {
+  string auction_id = 1;
+  string name = 2;
+  Lot active_lot = 3;
+  repeated Lot closed_lots = 4;
+  int64 last_sequence = 5;
+  int64 server_time_ms = 6;
+}
+
+message WatchAuctionRequest {
+  string auction_id = 1;
+  int64 last_seen_sequence = 2;
+}
+
+message BidAccepted {
+  string lot_id = 1;
+  string bidder = 2;
+  int32 amount = 3;
+}
+message BidRejected {
+  string lot_id = 1;
+  string bidder = 2;
+  int32 amount = 3;
+  string reason = 4;
+}
+message TimerTick {
+  string lot_id = 1;
+  int64 closes_at_ms = 2;
+  int64 remaining_ms = 3;
+}
+message TimeExtended {
+  string lot_id = 1;
+  int64 new_closes_at_ms = 2;
+}
+message LotOpened {
+  Lot lot = 1;
+}
+message LotClosed {
+  Lot lot = 1;
+}
+
+message AuctionEvent {
+  // Monotonic per auction. TimerTick events are not persisted and carry 0.
+  int64 sequence = 1;
+  int64 server_time_ms = 2;
+  oneof event {
+    LotOpened lot_opened = 3;
+    BidAccepted bid_accepted = 4;
+    BidRejected bid_rejected = 5;
+    TimerTick timer_tick = 6;
+    TimeExtended time_extended = 7;
+    LotClosed lot_closed = 8;
+  }
+}
+
+message ChannelClientMessage {
+  oneof message {
+    PlaceBidRequest bid = 1;
+    string heartbeat = 2;
+  }
+}
+
+service AuctionService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc CreateAuction(CreateAuctionRequest) returns (CreateAuctionResponse);
+  rpc OpenLot(OpenLotRequest) returns (OpenLotResponse);
+  rpc PlaceBid(PlaceBidRequest) returns (PlaceBidResponse);
+  rpc CloseLot(CloseLotRequest) returns (CloseLotResponse);
+  rpc GetAuctionState(GetAuctionStateRequest) returns (GetAuctionStateResponse);
+
+  // Server streaming. Deployed on Vercel (polling the events table).
+  rpc WatchAuction(WatchAuctionRequest) returns (stream AuctionEvent);
+
+  // Bidirectional streaming. Contract only: NOT deployed on Vercel.
+  rpc AuctionChannel(stream ChannelClientMessage) returns (stream AuctionEvent);
+}
