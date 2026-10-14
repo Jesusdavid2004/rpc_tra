@@ -14,9 +14,10 @@ import {
 import { useAuction } from "@/lib/client/use-auction";
 
 const inputClass =
-  "w-full rounded border border-neutral-400 bg-white px-2 py-1 text-black";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200";
 const buttonClass =
-  "rounded bg-emerald-700 px-3 py-1 font-medium text-white disabled:opacity-50";
+  "rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-emerald-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50";
+const cardClass = "rounded-2xl border border-slate-200 bg-white p-5 shadow-md";
 
 function describe(error: unknown): string {
   return ConnectError.from(error).rawMessage;
@@ -42,11 +43,13 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-4 p-4 text-neutral-900">
-      <header className="flex items-center justify-between">
+    <main className="mx-auto max-w-3xl space-y-5 px-4 py-8 text-slate-900">
+      <header className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-emerald-800 to-emerald-600 p-5 text-white shadow-lg">
         <div>
-          <h1 className="text-2xl font-bold">{t("title")}</h1>
-          <p className="text-sm text-neutral-600">{t("subtitle")}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            🐂 {t("title")}
+          </h1>
+          <p className="text-sm text-emerald-100">{t("subtitle")}</p>
         </div>
         <select
           aria-label={t("language")}
@@ -98,7 +101,7 @@ function SessionBar(props: { session: Session; onLogout: () => void }) {
       ? t("login.auctioneer")
       : t("login.bidder");
   return (
-    <div className="flex items-center justify-between rounded bg-neutral-100 p-2">
+    <div className="flex items-center justify-between rounded-xl bg-white/80 px-4 py-2 text-sm shadow-sm">
       <span>
         {t("login.signedInAs", { name: props.session.displayName, role })}
       </span>
@@ -140,8 +143,8 @@ function LoginForm(props: {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-2 rounded border p-3">
-      <h2 className="font-semibold">{t("login.title")}</h2>
+    <form onSubmit={submit} className={cardClass + " space-y-3"}>
+      <h2 className="text-lg font-bold">{t("login.title")}</h2>
       <input
         className={inputClass}
         placeholder={t("login.name")}
@@ -197,7 +200,7 @@ function AuctionPicker(props: {
   }
 
   return (
-    <section className="space-y-3 rounded border p-3">
+    <section className={cardClass + " space-y-3"}>
       <div className="flex gap-2">
         <input
           className={inputClass}
@@ -272,10 +275,10 @@ function AuctionRoom(props: {
       <p className="break-all text-xs text-neutral-500">{props.auctionId}</p>
       {view.error && <p className="text-red-700">{view.error}</p>}
 
-      <div className="rounded border p-3">
+      <div className={cardClass}>
         {lot ? (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">
+          <div className="space-y-3">
+            <h2 className="text-xl font-bold">
               {lot.animalType} · {lot.breed} · {lot.weightKg} kg ·{" "}
               {lot.ageMonths} m
             </h2>
@@ -289,7 +292,12 @@ function AuctionRoom(props: {
             </p>
             <p>
               {t("lot.timeLeft")}:{" "}
-              <strong className="text-2xl tabular-nums">
+              <strong
+                className={
+                  "text-4xl tabular-nums " +
+                  (remainingSeconds <= 10 ? "text-red-600" : "text-emerald-700")
+                }
+              >
                 {remainingSeconds}s
               </strong>
             </p>
@@ -326,8 +334,8 @@ function AuctionRoom(props: {
       <History events={view.history} />
 
       {view.closedLots.length > 0 && (
-        <div className="rounded border p-3">
-          <h3 className="font-semibold">{t("lot.closed")}</h3>
+        <div className={cardClass}>
+          <h3 className="font-bold">{t("lot.closed")}</h3>
           <ul className="text-sm">
             {view.closedLots.map((closed) => (
               <li key={closed.id}>
@@ -442,7 +450,7 @@ function OpenLotForm(props: {
   return (
     <form
       onSubmit={submit}
-      className="grid grid-cols-2 gap-2 rounded border p-3"
+      className={cardClass + " grid grid-cols-2 gap-3"}
     >
       {fields.map(([key, label, type]) => (
         <label key={key} className="text-sm">
@@ -465,7 +473,7 @@ function OpenLotForm(props: {
 function History(props: { events: AuctionEvent[] }) {
   const { t } = useTranslation();
   return (
-    <div className="rounded border p-3">
+    <div className={cardClass}>
       <h3 className="font-semibold">{t("history.title")}</h3>
       <ul className="max-h-64 overflow-auto text-sm">
         {props.events.map((event) => {
